@@ -11,13 +11,17 @@
 find_path (TOR_OR_INCLUDES or.h
   PATHS /usr/local/include /usr/include ${CMAKE_EXTRA_INCLUDES}
   )
-  
+
 find_path (TOR_COMMON_INCLUDES util.h
   PATHS /usr/local/include /usr/include ${CMAKE_EXTRA_INCLUDES}
   )
-  
-mark_as_advanced(${TOR_OR_INCLUDES} ${TOR_COMMON_INCLUDES})
-set(TOR_INCLUDES ${TOR_OR_INCLUDES} ${TOR_COMMON_INCLUDES})
+
+find_path (TOR_EXT_INCLUDES ht.h
+  PATHS /usr/local/include /usr/include ${CMAKE_EXTRA_INCLUDES}
+  )
+
+mark_as_advanced(${TOR_OR_INCLUDES} ${TOR_COMMON_INCLUDES} ${TOR_EXT_INCLUDES})
+set(TOR_INCLUDES ${TOR_OR_INCLUDES} ${TOR_COMMON_INCLUDES} ${TOR_EXT_INCLUDES})
 
 ## -----------------------------------------------------------------------------
 ## Check for the libraries

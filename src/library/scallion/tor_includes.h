@@ -52,7 +52,6 @@ typedef __fsid_t fsid_t;
 #include "src/common/compat_libevent.h"
 #include "src/common/compat.h"
 #include "src/common/container.h"
-#include "src/common/ht.h"
 #include "src/common/memarea.h"
 #include "src/common/mempool.h"
 #include "src/common/torlog.h"
@@ -74,6 +73,7 @@ typedef __fsid_t fsid_t;
 #include "src/or/circuitlist.h"
 #include "src/or/policies.h"
 #include "src/or/geoip.h"
+#include "src/ext/ht.h"
 #include <openssl/bn.h>
 #include <openssl/ssl.h>
 #include <pthread.h>

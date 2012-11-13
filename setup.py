@@ -205,8 +205,8 @@ def build(args):
     # check if we need to setup Tor
     if not args.disable_scallion:
         args.tordir = os.path.abspath(builddir+"/tor")
-        args.extra_includes.extend([args.tordir, args.tordir+"/src/or", args.tordir+"/src/common"])
-        args.extra_libraries.extend([args.tordir, args.tordir+"/src/or", args.tordir+"/src/common"])
+        args.extra_includes.extend([args.tordir, args.tordir+"/src/or", args.tordir+"/src/common", args.tordir+"/src/ext"])
+        args.extra_libraries.extend([args.tordir, args.tordir+"/src/or", args.tordir+"/src/common", args.tordir+"/src/ext"])
 
         if setup_tor(args) != 0: return -1
         cmake_cmd += " -DSCALLION_TORPATH=" + args.tordir
