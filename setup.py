@@ -243,7 +243,7 @@ def build(args):
     if retcode == 0:
         # call make, wait for it to finish
         log("calling \'make\'")
-        retcode = subprocess.call(["make"])
+        retcode = subprocess.call(["make", "VERBOSE=1"])
         log("make returned " + str(retcode))
         if retcode == 0: log("now run \'python setup.py install\'")
         else: log("ERROR! Non-zero return code from make.")
@@ -361,7 +361,7 @@ def setup_tor(args):
         # configure done now
         if retcode == 0:
             # build
-            build = "make clean && make"
+            build = "make clean && make V=1"
             log("running \'{0}\'".format(build))
             for cmd in build.split('&&'):
                 retcode = retcode | subprocess.call(shlex.split(cmd.strip()))
