@@ -16,7 +16,7 @@ def main():
 
     # List of variables to skip when adding to tor_externs.h.  This is
     # because these variables are declared in header files which get included.
-    vars_to_skip = ['_log_global_min_severity']
+    vars_to_skip = ['log_global_min_severity_']
 
     # List of functions that need to be globalized for scallion plugin
     function_list = [
