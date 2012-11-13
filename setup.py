@@ -334,7 +334,7 @@ def setup_tor(args):
         
             patch = "./patch.sh"
             gen = "aclocal && autoheader && autoconf && automake --add-missing --copy"
-            configure = "./configure --disable-transparent --disable-asciidoc CFLAGS=\"" + cflags + "\" LDFLAGS=\"" + ldflags + "\" LIBS=-lrt"
+            configure = "./configure --disable-transparent --disable-asciidoc CFLAGS=\"" + cflags + "\" LDFLAGS=\"" + ldflags + "\" LIBS=\"-lrt -lutp\""
 
             if args.libevent_prefix is not None: configure += " --with-libevent-dir=" + os.path.abspath(args.libevent_prefix)
             if args.openssl_prefix is not None: configure += " --with-openssl-dir=" + os.path.abspath(args.openssl_prefix)

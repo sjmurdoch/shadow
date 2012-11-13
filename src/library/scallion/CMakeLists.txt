@@ -29,7 +29,7 @@ add_dependencies(shadow-plugin-scallion shadow-service-filetransfer shadow-servi
 #-lz -lm -levent -lssl -lcrypto -ldl
 target_link_libraries(shadow-plugin-scallion shadow-service-browser shadow-service-filetransfer shadow-service-torrent
     ${TOR_LIBRARIES} ${GLIB_LIBRARIES} ${EVENT2_LIBRARIES} ${OPENSSL_LIBRARIES} 
-    ${TIDY_LIBRARIES} ${ZLIB_LIBRARIES} ${M_LIBRARIES} ${RT_LIBRARIES} ${DL_LIBRARIES})
+    ${TIDY_LIBRARIES} ${ZLIB_LIBRARIES} ${M_LIBRARIES} ${RT_LIBRARIES} ${DL_LIBRARIES} -lutp)
 install(TARGETS shadow-plugin-scallion DESTINATION $ENV{HOME}/.shadow/plugins)
 set_target_properties(shadow-plugin-scallion PROPERTIES INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/lib INSTALL_RPATH_USE_LINK_PATH TRUE)
 
