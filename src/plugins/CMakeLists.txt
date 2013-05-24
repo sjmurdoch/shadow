@@ -14,6 +14,10 @@ if(NOT BUILD_ECHO STREQUAL OFF)
     add_subdirectory(echo)
 endif(NOT BUILD_ECHO STREQUAL OFF)
 
+if(NOT BUILD_ECHOLIBUTP STREQUAL OFF)
+    add_subdirectory(echo-libutp)
+endif(NOT BUILD_ECHOLIBUTP STREQUAL OFF)
+
 if(NOT BUILD_FILETRANSFER STREQUAL OFF)
     add_subdirectory(filetransfer)
 endif(NOT BUILD_FILETRANSFER STREQUAL OFF)

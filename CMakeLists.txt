@@ -1,6 +1,6 @@
 ## (c) 2010-2012 Shadow, Rob Jansen jansen@cs.umn.edu
 
-project(Shadow C)
+project(Shadow C CXX)
 
 ## ensure cmake version
 cmake_minimum_required(VERSION 2.8.8 FATAL_ERROR)
