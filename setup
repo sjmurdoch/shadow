@@ -113,6 +113,12 @@ def main():
         action="store_true", dest="do_test",
         default=False)
     
+    parser_build.add_argument('--libutp-prefix',
+        help="PATH to the libutp directory to build",
+        metavar="PATH",
+        action="store", dest="libutp_prefix",
+        default=None)
+
     parser_build.add_argument('--tor-prefix', 
         help="PATH to a custom base Tor directory to build (overrides '--tor-version)", 
         metavar="PATH", 
@@ -312,6 +318,10 @@ def build(args):
     # run build tasks
     os.chdir(builddir)
     
+    # setup libutp
+    args.libutpdir = getfullpath(builddir+"/libutp")
+    if setup_libutp(args) != 0: return -1
+
     # check if we need to setup Tor
     if not args.disable_scallion:
         args.tordir = getfullpath(builddir+"/tor")
@@ -397,6 +407,37 @@ def install(args):
     
     # go back to where we came from
     os.chdir(calledDirectory)
+    return retcode
+
+def setup_libutp(args):
+    log("building libutp...")
+
+    if args.libutp_prefix is not None:
+        if os.path.exists(args.libutpdir): shutil.rmtree(args.libutpdir)
+        shutil.copytree(args.libutp_prefix, args.libutpdir)
+    else:
+        log("ERROR!: Path to libutp not specified")
+        return -1
+
+    retcode = 0
+
+    if os.path.exists(args.libutpdir):
+        calledDirectory = os.getcwd()
+        os.chdir(args.libutpdir)
+        cflags = "-fPIC -fno-inline"
+        if args.extra_includes is not None:
+            for i in args.extra_includes: cflags += " -I" + i.strip()
+        if args.do_debug: cflags += " -g"
+
+        ldflags = ""
+        if args.extra_libraries is not None:
+            for l in args.extra_libraries: ldflags += " -L" + l.strip()
+
+        make = "make -j{0}".format(args.njobs)
+        log("running \'{0}\'".format(make))
+        retcode = subprocess.call(shlex.split(make))
+        os.chdir(calledDirectory)
+
     return retcode
 
 def setup_tor(args):
