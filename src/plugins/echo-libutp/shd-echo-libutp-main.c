@@ -23,7 +23,7 @@
 #include <netinet/in.h>
 #include <sys/epoll.h>
 
-#include "shd-echo.h"
+#include "shd-echo-libutp.h"
 
 void mylog(GLogLevelFlags level, const gchar* functionName, gchar* format, ...) {
 	va_list variableArguments;
@@ -36,7 +36,7 @@ gint main(gint argc, gchar *argv[]) {
 	Echo echostate;
 	memset(&echostate, 0, sizeof(Echo));
 
-	mylog(G_LOG_LEVEL_DEBUG, __FUNCTION__, "Starting echo program");
+	mylog(G_LOG_LEVEL_DEBUG, __FUNCTION__, "Starting echo-libutp program");
 
 	const char* USAGE = "Echo USAGE: 'tcp client serverIP', 'tcp server', 'tcp loopback', 'tcp socketpair', "
 			"'udp client serverIP', 'udp server', 'udp loopback', 'pipe'\n"
