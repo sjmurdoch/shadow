@@ -21,6 +21,7 @@
  */
 
 #include "shd-echo-libutp.h"
+#include "utp.h"
 
 static EchoClient* _echoutp_newClient(ShadowLogFunc log, in_addr_t serverIPAddress) {
 	g_assert(log);
