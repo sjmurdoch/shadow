@@ -55,7 +55,7 @@ void echoplugin_new(int argc, char* argv[]) {
 			"echoplugin_new called");
 
 	const char* USAGE = "Echo USAGE: 'tcp client serverIP', 'tcp server', 'tcp loopback', 'tcp socketpair', "
-			"'udp client serverIP', 'udp server', 'udp loopback', 'pipe'\n"
+			"'udp client serverIP', 'udp server', 'udp loopback', 'utp loopback', 'pipe'\n"
 			"** clients and servers must be paired together, but loopback, socketpair,"
 			"and pipe modes stand on their own.";
 
@@ -82,6 +82,12 @@ void echoplugin_new(int argc, char* argv[]) {
 		echostate.protocol = ECHOP_UDP;
 		echostate.eudp = echoudp_new(echostate.shadowlibFuncs.log, argc - 2, &argv[2]);
 		isError = (echostate.eudp == NULL) ? TRUE : FALSE;
+	}
+	else if(g_ascii_strncasecmp(protocol, "utp", 3) == 0)
+	{
+		echostate.protocol = ECHOP_UTP;
+		echostate.eutp = echoutp_new(echostate.shadowlibFuncs.log, argc - 2, &argv[2]);
+		isError = (echostate.eutp == NULL) ? TRUE : FALSE;
 	}
 	else if(g_ascii_strncasecmp(protocol, "pipe", 4) == 0)
 	{
@@ -111,6 +117,11 @@ void echoplugin_free() {
 			break;
 		}
 
+		case ECHOP_UTP: {
+			echoutp_free(echostate.eutp);
+			break;
+		}
+
 		case ECHOP_PIPE: {
 			echopipe_free(echostate.epipe);
 			break;
@@ -136,6 +147,11 @@ void echoplugin_ready() {
 
 		case ECHOP_UDP: {
 			echoudp_ready(echostate.eudp);
+			break;
+		}
+
+		case ECHOP_UTP: {
+			echoutp_ready(echostate.eutp);
 			break;
 		}
 

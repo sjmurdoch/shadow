@@ -63,7 +63,7 @@
  * Protocol modes this echo module supports.
  */
 enum EchoProtocol {
-	ECHOP_NONE, ECHOP_TCP, ECHOP_UDP, ECHOP_PIPE,
+	ECHOP_NONE, ECHOP_TCP, ECHOP_UDP, ECHOP_UTP, ECHOP_PIPE,
 };
 
 /**
@@ -121,6 +121,16 @@ struct _EchoUDP {
 /**
  *
  */
+typedef struct _EchoUTP EchoUTP;
+struct _EchoUTP {
+	ShadowLogFunc log;
+	EchoClient* client;
+	EchoServer* server;
+};
+
+/**
+ *
+ */
 typedef struct _EchoPipe EchoPipe;
 struct _EchoPipe {
 	ShadowLogFunc log;
@@ -142,6 +152,7 @@ struct _Echo {
 	enum EchoProtocol protocol;
 	EchoTCP* etcp;
 	EchoUDP* eudp;
+	EchoUTP* eutp;
 	EchoPipe* epipe;
 };
 
@@ -156,6 +167,10 @@ void echotcp_ready(EchoTCP* etcp);
 EchoUDP* echoudp_new(ShadowLogFunc log, int argc, char* argv[]);
 void echoudp_free(EchoUDP* eudp);
 void echoudp_ready(EchoUDP* eudp);
+
+EchoUTP* echoutp_new(ShadowLogFunc log, int argc, char* argv[]);
+void echoutp_free(EchoUTP* eutp);
+void echoutp_ready(EchoUTP* eutp);
 
 EchoPipe* echopipe_new(ShadowLogFunc log);
 void echopipe_free(EchoPipe* epipe);

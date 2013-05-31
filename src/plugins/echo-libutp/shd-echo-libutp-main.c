@@ -39,7 +39,7 @@ gint main(gint argc, gchar *argv[]) {
 	mylog(G_LOG_LEVEL_DEBUG, __FUNCTION__, "Starting echo-libutp program");
 
 	const char* USAGE = "Echo USAGE: 'tcp client serverIP', 'tcp server', 'tcp loopback', 'tcp socketpair', "
-			"'udp client serverIP', 'udp server', 'udp loopback', 'pipe'\n"
+			"'udp client serverIP', 'udp server', 'udp loopback', 'utp loopback', 'pipe'\n"
 			"** clients and servers must be paired together, but loopback, socketpair,"
 			"and pipe modes stand on their own.";
 
@@ -66,6 +66,12 @@ gint main(gint argc, gchar *argv[]) {
 		echostate.eudp = echoudp_new(mylog, argc - 2, &argv[2]);
 		isError = (echostate.eudp == NULL) ? TRUE : FALSE;
 	}
+	else if(g_ascii_strncasecmp(protocol, "utp", 3) == 0)
+	{
+		echostate.protocol = ECHOP_UTP;
+		echostate.eutp = echoutp_new(mylog, argc - 2, &argv[2]);
+		isError = (echostate.eutp == NULL) ? TRUE : FALSE;
+	}
 	else if(g_ascii_strncasecmp(protocol, "pipe", 4) == 0)
 	{
 		echostate.protocol = ECHOP_PIPE;
@@ -78,8 +84,14 @@ gint main(gint argc, gchar *argv[]) {
 		mylog(G_LOG_LEVEL_CRITICAL, __FUNCTION__, "%s", USAGE);
 	}
 
-	EchoServer* server = echostate.etcp ? echostate.etcp->server : echostate.eudp ? echostate.eudp->server : NULL;
-	EchoClient* client = echostate.etcp ? echostate.etcp->client : echostate.eudp ? echostate.eudp->client : NULL;
+	EchoServer* server = (echostate.etcp ? echostate.etcp->server :
+				echostate.eudp ? echostate.eudp->server :
+				echostate.eutp ? echostate.eutp->server :
+				NULL);
+	EchoClient* client = (echostate.etcp ? echostate.etcp->client :
+				echostate.eudp ? echostate.eudp->client :
+				echostate.eutp ? echostate.eutp->client :
+				NULL);
 	EchoPipe* epipe = echostate.epipe;
 
 	/* do an epoll on the client/server epoll descriptors, so we know when
@@ -131,8 +143,10 @@ gint main(gint argc, gchar *argv[]) {
 			if(events[i].events & EPOLLIN) {
 				if(echostate.etcp) {
 					echotcp_ready(echostate.etcp);
-				}else if(echostate.eudp) {
+				} else if(echostate.eudp) {
 					echoudp_ready(echostate.eudp);
+				} else if(echostate.eutp) {
+					echoutp_ready(echostate.eutp);
 				} else if(echostate.epipe) {
 					echopipe_ready(echostate.epipe);
 				}
@@ -146,6 +160,9 @@ gint main(gint argc, gchar *argv[]) {
 			}
 			if(echostate.eudp) {
 				echoudp_free(echostate.eudp);
+			}
+			if(echostate.eutp) {
+				echoutp_free(echostate.eutp);
 			}
 			break;
 		}
