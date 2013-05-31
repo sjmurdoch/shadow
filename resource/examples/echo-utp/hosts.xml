@@ -21,6 +21,12 @@
 <node id="reliable.tcploopback.echo" cluster="net0" >
        <application plugin="echopluginutp" time="20" arguments="tcp loopback" />
 </node>
+<node id="reliable.utpserver.echo"cluster="net0" >
+       <application plugin="echopluginutp" time="10" arguments="utp server" />
+</node>
+<node id="reliable.utpclient.echo" cluster="net0" >
+       <application plugin="echopluginutp" time="20" arguments="utp client reliable.utpserver.echo" />
+</node>
 <node id="reliable.utploopback.echo" cluster="net0" >
        <application plugin="echopluginutp" time="20" arguments="utp loopback" />
 </node>
@@ -32,6 +38,12 @@
 </node>
 <node id="unreliable.tcploopback.echo" cluster="net1" >
        <application plugin="echopluginutp" time="20" arguments="tcp loopback" />
+</node>
+<node id="unreliable.utpserver.echo" cluster="net1" >
+       <application plugin="echopluginutp" time="10" arguments="utp server" />
+</node>
+<node id="unreliable.utpclient.echo" cluster="net1" >
+       <application plugin="echopluginutp" time="20" arguments="utp client unreliable.utpserver.echo" />
 </node>
 <node id="unreliable.utploopback.echo" cluster="net1" >
        <application plugin="echopluginutp" time="20" arguments="utp loopback" />
