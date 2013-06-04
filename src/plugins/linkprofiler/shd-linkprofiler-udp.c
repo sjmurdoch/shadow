@@ -219,7 +219,7 @@ static void _linkprofilerudp_clientReadable(LinkProfilerClient* ec, gint socketd
 		ssize_t b = 0;
 		while(ec->amount_sent-ec->recv_offset > 0 &&
 				(b = recvfrom(socketd, ec->recvBuffer+ec->recv_offset, ec->amount_sent-ec->recv_offset, 0, NULL, NULL)) > 0) {
-			ec->log(G_LOG_LEVEL_DEBUG, __FUNCTION__, "client socket %i read %i bytes: '%s'", socketd, b, ec->recvBuffer+ec->recv_offset);
+			ec->log(G_LOG_LEVEL_INFO, __FUNCTION__, "client socket %i read %i bytes: '%p'", socketd, b, ec->recvBuffer+ec->recv_offset);
 			ec->recv_offset += b;
 		}
 
@@ -296,7 +296,7 @@ static void _linkprofilerudp_clientWritable(LinkProfilerClient* ec, gint socketd
 		ssize_t b = sendto(socketd, ec->sendBuffer, sizeof(ec->sendBuffer), 0, (struct sockaddr*) (&server), len);
 		ec->sent_msg = 1;
 		ec->amount_sent += b;
-		ec->log(G_LOG_LEVEL_DEBUG, __FUNCTION__, "client socket %i wrote %i bytes: '%s'", socketd, b, ec->sendBuffer);
+		ec->log(G_LOG_LEVEL_INFO, __FUNCTION__, "client socket %i wrote %i bytes: '%p'", socketd, b, ec->sendBuffer);
 
 		if(ec->amount_sent >= sizeof(ec->sendBuffer)) {
 			/* we sent everything, so stop trying to write */
