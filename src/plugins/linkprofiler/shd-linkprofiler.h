@@ -2,6 +2,7 @@
  * The Shadow Simulator
  *
  * Copyright (c) 2010-2012 Rob Jansen <jansen@cs.umn.edu>
+ * Copyright (c) 2013 Steven J. Murdoch <Steven.Murdoch@cl.cam.ac.uk>
  *
  * This file is part of Shadow.
  *
@@ -19,8 +20,8 @@
  * along with Shadow.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SHD_ECHO_H_
-#define SHD_ECHO_H_
+#ifndef SHD_LINKPROFILER_H_
+#define SHD_LINKPROFILER_H_
 
 #include <glib.h>
 #include <shd-library.h>
@@ -39,7 +40,7 @@
 #include <unistd.h>
 
 #define BUFFERSIZE 20000
-#define ECHO_SERVER_PORT 9999
+#define LINKPROFILER_SERVER_PORT 9999
 #define MAX_EVENTS 10
 
 /**
@@ -60,17 +61,17 @@
  */
 
 /**
- * Protocol modes this echo module supports.
+ * Protocol modes this linkprofiler module supports.
  */
-enum EchoProtocol {
-	ECHOP_NONE, ECHOP_TCP, ECHOP_UDP, ECHOP_PIPE,
+enum LinkProfilerProtocol {
+	LINKPROFILERP_NONE, LINKPROFILERP_UDP,
 };
 
 /**
  *
  */
-typedef struct _EchoClient EchoClient;
-struct _EchoClient {
+typedef struct _LinkProfilerClient LinkProfilerClient;
+struct _LinkProfilerClient {
 	ShadowLogFunc log;
 	in_addr_t serverIP;
 	gint epolld;
@@ -86,14 +87,14 @@ struct _EchoClient {
 /**
  *
  */
-typedef struct _EchoServer EchoServer;
-struct _EchoServer {
+typedef struct _LinkProfilerServer LinkProfilerServer;
+struct _LinkProfilerServer {
 	ShadowLogFunc log;
 	gint epolld;
 	gint listend;
 	gint socketd;
 	struct sockaddr_in address;
-	gchar echoBuffer[BUFFERSIZE];
+	gchar linkprofilerBuffer[BUFFERSIZE];
 	gint read_offset;
 	gint write_offset;
 };
@@ -101,64 +102,29 @@ struct _EchoServer {
 /**
  *
  */
-typedef struct _EchoTCP EchoTCP;
-struct _EchoTCP {
+typedef struct _LinkProfilerUDP LinkProfilerUDP;
+struct _LinkProfilerUDP {
 	ShadowLogFunc log;
-	EchoClient* client;
-	EchoServer* server;
+	LinkProfilerClient* client;
+	LinkProfilerServer* server;
 };
 
 /**
  *
  */
-typedef struct _EchoUDP EchoUDP;
-struct _EchoUDP {
-	ShadowLogFunc log;
-	EchoClient* client;
-	EchoServer* server;
-};
-
-/**
- *
- */
-typedef struct _EchoPipe EchoPipe;
-struct _EchoPipe {
-	ShadowLogFunc log;
-	gint writefd;
-	gchar inputBuffer[BUFFERSIZE];
-	gboolean didWrite;
-	gint readfd;
-	gchar outputBuffer[BUFFERSIZE];
-	gint didRead;
-	gint epolld;
-};
-
-/**
- *
- */
-typedef struct _Echo Echo;
-struct _Echo {
+typedef struct _LinkProfiler LinkProfiler;
+struct _LinkProfiler {
 	ShadowFunctionTable shadowlibFuncs;
-	enum EchoProtocol protocol;
-	EchoTCP* etcp;
-	EchoUDP* eudp;
-	EchoPipe* epipe;
+	enum LinkProfilerProtocol protocol;
+	LinkProfilerUDP* eudp;
 };
 
-void echoplugin_new(int argc, char* argv[]);
-void echoplugin_free();
-void echoplugin_ready();
+void linkprofilerplugin_new(int argc, char* argv[]);
+void linkprofilerplugin_free();
+void linkprofilerplugin_ready();
 
-EchoTCP* echotcp_new(ShadowLogFunc log, int argc, char* argv[]);
-void echotcp_free(EchoTCP* etcp);
-void echotcp_ready(EchoTCP* etcp);
+LinkProfilerUDP* linkprofilerudp_new(ShadowLogFunc log, int argc, char* argv[]);
+void linkprofilerudp_free(LinkProfilerUDP* eudp);
+void linkprofilerudp_ready(LinkProfilerUDP* eudp);
 
-EchoUDP* echoudp_new(ShadowLogFunc log, int argc, char* argv[]);
-void echoudp_free(EchoUDP* eudp);
-void echoudp_ready(EchoUDP* eudp);
-
-EchoPipe* echopipe_new(ShadowLogFunc log);
-void echopipe_free(EchoPipe* epipe);
-void echopipe_ready(EchoPipe* epipe);
-
-#endif /* SHD_ECHO_H_ */
+#endif /* SHD_LINKPROFILER_H_ */

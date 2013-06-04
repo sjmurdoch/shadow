@@ -2,6 +2,7 @@
  * The Shadow Simulator
  *
  * Copyright (c) 2010-2012 Rob Jansen <jansen@cs.umn.edu>
+ * Copyright (c) 2013 Steven J. Murdoch <Steven.Murdoch@cl.cam.ac.uk>
  *
  * This file is part of Shadow.
  *
@@ -33,12 +34,12 @@ void mylog(GLogLevelFlags level, const gchar* functionName, gchar* format, ...) 
 }
 
 gint main(gint argc, gchar *argv[]) {
-	Echo echostate;
-	memset(&echostate, 0, sizeof(Echo));
+	LinkProfiler linkprofilerstate;
+	memset(&linkprofilerstate, 0, sizeof(LinkProfiler));
 
-	mylog(G_LOG_LEVEL_DEBUG, __FUNCTION__, "Starting echo program");
+	mylog(G_LOG_LEVEL_DEBUG, __FUNCTION__, "Starting linkprofiler program");
 
-	const char* USAGE = "Echo USAGE: 'udp client serverIP', 'udp server', 'udp loopback'\n";
+	const char* USAGE = "linkprofiler USAGE: 'udp client serverIP', 'udp server', 'udp loopback'\n";
 
 	/* 0 is the plugin name, 1 is the protocol */
 	if(argc < 2) {
@@ -52,9 +53,9 @@ gint main(gint argc, gchar *argv[]) {
 
 	if(g_ascii_strncasecmp(protocol, "udp", 3) == 0)
 	{
-		echostate.protocol = ECHOP_UDP;
-		echostate.eudp = echoudp_new(mylog, argc - 2, &argv[2]);
-		isError = (echostate.eudp == NULL) ? TRUE : FALSE;
+		linkprofilerstate.protocol = LINKPROFILERP_UDP;
+		linkprofilerstate.eudp = linkprofilerudp_new(mylog, argc - 2, &argv[2]);
+		isError = (linkprofilerstate.eudp == NULL) ? TRUE : FALSE;
 	}
 
 	if(isError) {
@@ -62,9 +63,8 @@ gint main(gint argc, gchar *argv[]) {
 		mylog(G_LOG_LEVEL_CRITICAL, __FUNCTION__, "%s", USAGE);
 	}
 
-	EchoServer* server = echostate.etcp ? echostate.etcp->server : echostate.eudp ? echostate.eudp->server : NULL;
-	EchoClient* client = echostate.etcp ? echostate.etcp->client : echostate.eudp ? echostate.eudp->client : NULL;
-	EchoPipe* epipe = echostate.epipe;
+	LinkProfilerServer* server = linkprofilerstate.eudp ? linkprofilerstate.eudp->server : NULL;
+	LinkProfilerClient* client = linkprofilerstate.eudp ? linkprofilerstate.eudp->client : NULL;
 
 	/* do an epoll on the client/server epoll descriptors, so we know when
 	 * we can wait on either of them without blocking.
@@ -92,15 +92,6 @@ gint main(gint argc, gchar *argv[]) {
 				return -1;
 			}
 		}
-		if(epipe) {
-			struct epoll_event ev;
-			ev.events = EPOLLIN;
-			ev.data.fd = epipe->epolld;
-			if(epoll_ctl(epolld, EPOLL_CTL_ADD, epipe->epolld, &ev) == -1) {
-				mylog(G_LOG_LEVEL_WARNING, __FUNCTION__, "Error in epoll_ctl");
-				return -1;
-			}
-		}
 	}
 
 	/* main loop - when the client/server epoll fds are ready, activate them */
@@ -113,24 +104,17 @@ gint main(gint argc, gchar *argv[]) {
 
 		for(int i = 0; i < nfds; i++) {
 			if(events[i].events & EPOLLIN) {
-				if(echostate.eudp) {
-					echoudp_ready(echostate.eudp);
+				if(linkprofilerstate.eudp) {
+					linkprofilerudp_ready(linkprofilerstate.eudp);
 				}
 			}
 		}
 
 		if(client && client->is_done) {
 			close(client->socketd);
-			if(echostate.eudp) {
-				echoudp_free(echostate.eudp);
+			if(linkprofilerstate.eudp) {
+				linkprofilerudp_free(linkprofilerstate.eudp);
 			}
-			break;
-		}
-
-		if(epipe && epipe->didRead) {
-			close(epipe->readfd);
-			close(epipe->writefd);
-			close(epipe->epolld);
 			break;
 		}
 	}
