@@ -27,7 +27,7 @@
  * straight UDP Shadow plug-in.
  */
 
-#include "shd-echo.h"
+#include "shd-linkprofiler.h"
 
 static EchoClient* _echoudp_newClient(ShadowLogFunc log, in_addr_t serverIPAddress) {
 	g_assert(log);

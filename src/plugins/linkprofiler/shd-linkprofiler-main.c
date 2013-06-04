@@ -23,7 +23,7 @@
 #include <netinet/in.h>
 #include <sys/epoll.h>
 
-#include "shd-echo.h"
+#include "shd-linkprofiler.h"
 
 void mylog(GLogLevelFlags level, const gchar* functionName, gchar* format, ...) {
 	va_list variableArguments;
@@ -38,10 +38,7 @@ gint main(gint argc, gchar *argv[]) {
 
 	mylog(G_LOG_LEVEL_DEBUG, __FUNCTION__, "Starting echo program");
 
-	const char* USAGE = "Echo USAGE: 'tcp client serverIP', 'tcp server', 'tcp loopback', 'tcp socketpair', "
-			"'udp client serverIP', 'udp server', 'udp loopback', 'pipe'\n"
-			"** clients and servers must be paired together, but loopback, socketpair,"
-			"and pipe modes stand on their own.";
+	const char* USAGE = "Echo USAGE: 'udp client serverIP', 'udp server', 'udp loopback'\n";
 
 	/* 0 is the plugin name, 1 is the protocol */
 	if(argc < 2) {
@@ -53,24 +50,11 @@ gint main(gint argc, gchar *argv[]) {
 
 	gboolean isError = TRUE;
 
-	/* check for the protocol option and create the correct application state */
-	if(g_ascii_strncasecmp(protocol, "tcp", 3) == 0)
-	{
-		echostate.protocol = ECHOP_TCP;
-		echostate.etcp = echotcp_new(mylog, argc - 2, &argv[2]);
-		isError = (echostate.etcp == NULL) ? TRUE : FALSE;
-	}
-	else if(g_ascii_strncasecmp(protocol, "udp", 3) == 0)
+	if(g_ascii_strncasecmp(protocol, "udp", 3) == 0)
 	{
 		echostate.protocol = ECHOP_UDP;
 		echostate.eudp = echoudp_new(mylog, argc - 2, &argv[2]);
 		isError = (echostate.eudp == NULL) ? TRUE : FALSE;
-	}
-	else if(g_ascii_strncasecmp(protocol, "pipe", 4) == 0)
-	{
-		echostate.protocol = ECHOP_PIPE;
-		echostate.epipe = echopipe_new(mylog);
-		isError = (echostate.epipe == NULL) ? TRUE : FALSE;
 	}
 
 	if(isError) {
@@ -129,21 +113,14 @@ gint main(gint argc, gchar *argv[]) {
 
 		for(int i = 0; i < nfds; i++) {
 			if(events[i].events & EPOLLIN) {
-				if(echostate.etcp) {
-					echotcp_ready(echostate.etcp);
-				}else if(echostate.eudp) {
+				if(echostate.eudp) {
 					echoudp_ready(echostate.eudp);
-				} else if(echostate.epipe) {
-					echopipe_ready(echostate.epipe);
 				}
 			}
 		}
 
 		if(client && client->is_done) {
 			close(client->socketd);
-			if(echostate.etcp) {
-				echotcp_free(echostate.etcp);
-			}
 			if(echostate.eudp) {
 				echoudp_free(echostate.eudp);
 			}

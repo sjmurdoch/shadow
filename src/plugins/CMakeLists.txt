@@ -14,6 +14,10 @@ if(NOT BUILD_ECHO STREQUAL OFF)
     add_subdirectory(echo)
 endif(NOT BUILD_ECHO STREQUAL OFF)
 
+if(NOT BUILD_LINKPROFILER STREQUAL OFF)
+    add_subdirectory(linkprofiler)
+endif(NOT BUILD_LINKPROFILER STREQUAL OFF)
+
 if(NOT BUILD_ECHOLIBUTP STREQUAL OFF)
     add_subdirectory(echo-libutp)
 endif(NOT BUILD_ECHOLIBUTP STREQUAL OFF)

@@ -19,7 +19,7 @@
  * along with Shadow.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "shd-echo.h"
+#include "shd-linkprofiler.h"
 
 /* my global structure to hold all variable, node-specific application state.
  * the name must not collide with other loaded modules globals. */
@@ -54,10 +54,7 @@ void echoplugin_new(int argc, char* argv[]) {
 	echostate.shadowlibFuncs.log(G_LOG_LEVEL_DEBUG, __FUNCTION__,
 			"echoplugin_new called");
 
-	const char* USAGE = "Echo USAGE: 'tcp client serverIP', 'tcp server', 'tcp loopback', 'tcp socketpair', "
-			"'udp client serverIP', 'udp server', 'udp loopback', 'pipe'\n"
-			"** clients and servers must be paired together, but loopback, socketpair,"
-			"and pipe modes stand on their own.";
+	const char* USAGE = "Echo USAGE: 'udp client serverIP', 'udp server', 'udp loopback'\n";
 
 
 	/* 0 is the plugin name, 1 is the protocol */
@@ -71,23 +68,11 @@ void echoplugin_new(int argc, char* argv[]) {
 	gboolean isError = TRUE;
 
 	/* check for the protocol option and create the correct application state */
-	if(g_ascii_strncasecmp(protocol, "tcp", 3) == 0)
-	{
-		echostate.protocol = ECHOP_TCP;
-		echostate.etcp = echotcp_new(echostate.shadowlibFuncs.log, argc - 2, &argv[2]);
-		isError = (echostate.etcp == NULL) ? TRUE : FALSE;
-	}
-	else if(g_ascii_strncasecmp(protocol, "udp", 3) == 0)
+	if(g_ascii_strncasecmp(protocol, "udp", 3) == 0)
 	{
 		echostate.protocol = ECHOP_UDP;
 		echostate.eudp = echoudp_new(echostate.shadowlibFuncs.log, argc - 2, &argv[2]);
 		isError = (echostate.eudp == NULL) ? TRUE : FALSE;
-	}
-	else if(g_ascii_strncasecmp(protocol, "pipe", 4) == 0)
-	{
-		echostate.protocol = ECHOP_PIPE;
-		echostate.epipe = echopipe_new(echostate.shadowlibFuncs.log);
-		isError = (echostate.epipe == NULL) ? TRUE : FALSE;
 	}
 
 	if(isError) {
@@ -101,18 +86,8 @@ void echoplugin_free() {
 
 	/* call the correct version depending on what we are running */
 	switch(echostate.protocol) {
-		case ECHOP_TCP: {
-			echotcp_free(echostate.etcp);
-			break;
-		}
-
 		case ECHOP_UDP: {
 			echoudp_free(echostate.eudp);
-			break;
-		}
-
-		case ECHOP_PIPE: {
-			echopipe_free(echostate.epipe);
 			break;
 		}
 
@@ -129,18 +104,8 @@ void echoplugin_ready() {
 
 	/* call the correct version depending on what we are running */
 	switch(echostate.protocol) {
-		case ECHOP_TCP: {
-			echotcp_ready(echostate.etcp);
-			break;
-		}
-
 		case ECHOP_UDP: {
 			echoudp_ready(echostate.eudp);
-			break;
-		}
-
-		case ECHOP_PIPE: {
-			echopipe_ready(echostate.epipe);
 			break;
 		}
 
