@@ -248,25 +248,17 @@ static void _linkprofilerudp_serverReadable(LinkProfilerServer* es, gint socketd
 	socklen_t len = sizeof(es->address);
 
 	/* read all data available */
-	gint read_size = BUFFERSIZE - es->read_offset;
+	gint read_size = BUFFERSIZE;
 	if(read_size > 0) {
-		ssize_t bread = recvfrom(socketd, es->linkprofilerBuffer + es->read_offset, read_size, 0, (struct sockaddr*)&es->address, &len);
+		ssize_t bread = recvfrom(socketd, es->linkprofilerBuffer, read_size, 0, (struct sockaddr*)&es->address, &len);
 
-		/* if we read, start listening for when we can write */
+		/* throw away the data */
 		if(bread == 0) {
+			es->log(G_LOG_LEVEL_WARNING, __FUNCTION__, "server socket %i read zero bytes", socketd, (gint)bread);
 			close(es->listend);
 			close(socketd);
 		} else if(bread > 0) {
 			es->log(G_LOG_LEVEL_INFO, __FUNCTION__, "server socket %i read %i bytes", socketd, (gint)bread);
-			es->read_offset += bread;
-			read_size -= bread;
-
-			struct epoll_event ev;
-			ev.events = EPOLLIN|EPOLLOUT;
-			ev.data.fd = socketd;
-			if(epoll_ctl(es->epolld, EPOLL_CTL_MOD, socketd, &ev) == -1) {
-				es->log(G_LOG_LEVEL_WARNING, __FUNCTION__, "Error in epoll_ctl");
-			}
 		}
 	}
 }
