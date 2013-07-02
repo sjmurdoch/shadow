@@ -219,11 +219,25 @@ static void _linkprofilerudp_wakeupCallback(gpointer data) {
 	LinkProfilerClient *ec = (LinkProfilerClient*)data;
 	ec->log(G_LOG_LEVEL_DEBUG, __FUNCTION__, "Woken up");
 	ec->is_done=0;
+
+	/* setup the events we will watch for */
+	struct epoll_event ev;
+	ev.events = EPOLLIN|EPOLLOUT;
+	ev.data.fd = ec->socketd;
+
+	/* start watching out socket */
+	gint result = epoll_ctl(ec->epolld, EPOLL_CTL_ADD, ec->socketd, &ev);
+	if(result == -1) {
+		ec->log(G_LOG_LEVEL_WARNING, __FUNCTION__, "Error in epoll_ctl");
+		close(ec->epolld);
+		close(ec->socketd);
+	}
 }
 
 static void _linkprofilerudp_sleepCallback(LinkProfilerClient *ec, guint seconds) {
 	ec->log(G_LOG_LEVEL_DEBUG, __FUNCTION__, "Going to sleep");
 	ec->is_done=1;
+	epoll_ctl(ec->epolld, EPOLL_CTL_DEL, ec->socketd, NULL);
         ec->ccb(&_linkprofilerudp_wakeupCallback, ec, seconds*1000);
 }
 
@@ -312,7 +326,7 @@ static void _linkprofilerudp_serverWritable(LinkProfilerServer* es, gint socketd
 void linkprofilerudp_ready(LinkProfilerUDP* eudp) {
 	g_assert(eudp);
 
-	if(eudp->client && !eudp->client->is_done) {
+	if(eudp->client) {
 		struct epoll_event events[MAX_EVENTS];
 
 		int nfds = epoll_wait(eudp->client->epolld, events, MAX_EVENTS, 0);
