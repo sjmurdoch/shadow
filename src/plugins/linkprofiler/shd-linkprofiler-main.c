@@ -33,6 +33,10 @@ void mylog(GLogLevelFlags level, const gchar* functionName, gchar* format, ...) 
 	va_end(variableArguments);
 }
 
+void myccb(ShadowPluginCallbackFunc callback, gpointer data, guint millisecondsDelay) {
+	;
+}
+
 gint main(gint argc, gchar *argv[]) {
 	LinkProfiler linkprofilerstate;
 	memset(&linkprofilerstate, 0, sizeof(LinkProfiler));
@@ -54,7 +58,7 @@ gint main(gint argc, gchar *argv[]) {
 	if(g_ascii_strncasecmp(protocol, "udp", 3) == 0)
 	{
 		linkprofilerstate.protocol = LINKPROFILERP_UDP;
-		linkprofilerstate.eudp = linkprofilerudp_new(mylog, argc - 2, &argv[2]);
+		linkprofilerstate.eudp = linkprofilerudp_new(mylog, myccb, argc - 2, &argv[2]);
 		isError = (linkprofilerstate.eudp == NULL) ? TRUE : FALSE;
 	}
 

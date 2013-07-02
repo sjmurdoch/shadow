@@ -73,6 +73,7 @@ enum LinkProfilerProtocol {
 typedef struct _LinkProfilerClient LinkProfilerClient;
 struct _LinkProfilerClient {
 	ShadowLogFunc log;
+	ShadowCreateCallbackFunc ccb;
 	in_addr_t serverIP;
 	gint epolld;
 	gint socketd;
@@ -90,6 +91,7 @@ struct _LinkProfilerClient {
 typedef struct _LinkProfilerServer LinkProfilerServer;
 struct _LinkProfilerServer {
 	ShadowLogFunc log;
+	ShadowCreateCallbackFunc ccb;
 	gint epolld;
 	gint listend;
 	gint socketd;
@@ -105,6 +107,7 @@ struct _LinkProfilerServer {
 typedef struct _LinkProfilerUDP LinkProfilerUDP;
 struct _LinkProfilerUDP {
 	ShadowLogFunc log;
+	ShadowCreateCallbackFunc ccb;
 	LinkProfilerClient* client;
 	LinkProfilerServer* server;
 };
@@ -123,7 +126,7 @@ void linkprofilerplugin_new(int argc, char* argv[]);
 void linkprofilerplugin_free();
 void linkprofilerplugin_ready();
 
-LinkProfilerUDP* linkprofilerudp_new(ShadowLogFunc log, int argc, char* argv[]);
+LinkProfilerUDP* linkprofilerudp_new(ShadowLogFunc log, ShadowCreateCallbackFunc ccb, int argc, char* argv[]);
 void linkprofilerudp_free(LinkProfilerUDP* eudp);
 void linkprofilerudp_ready(LinkProfilerUDP* eudp);
 

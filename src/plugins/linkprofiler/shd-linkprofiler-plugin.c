@@ -72,7 +72,7 @@ void linkprofilerplugin_new(int argc, char* argv[]) {
 	if(g_ascii_strncasecmp(protocol, "udp", 3) == 0)
 	{
 		linkprofilerstate.protocol = LINKPROFILERP_UDP;
-		linkprofilerstate.eudp = linkprofilerudp_new(linkprofilerstate.shadowlibFuncs.log, argc - 2, &argv[2]);
+		linkprofilerstate.eudp = linkprofilerudp_new(linkprofilerstate.shadowlibFuncs.log, linkprofilerstate.shadowlibFuncs.createCallback, argc - 2, &argv[2]);
 		isError = (linkprofilerstate.eudp == NULL) ? TRUE : FALSE;
 	}
 

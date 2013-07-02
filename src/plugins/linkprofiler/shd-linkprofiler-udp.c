@@ -30,7 +30,7 @@
 
 #include "shd-linkprofiler.h"
 
-static LinkProfilerClient* _linkprofilerudp_newClient(ShadowLogFunc log, in_addr_t serverIPAddress) {
+static LinkProfilerClient* _linkprofilerudp_newClient(ShadowLogFunc log, ShadowCreateCallbackFunc ccb, in_addr_t serverIPAddress) {
 	g_assert(log);
 
 	/* create the socket and get a socket descriptor */
@@ -68,10 +68,11 @@ static LinkProfilerClient* _linkprofilerudp_newClient(ShadowLogFunc log, in_addr
 	ec->epolld = epolld;
 	ec->serverIP = serverIPAddress;
 	ec->log = log;
+	ec->ccb = ccb;
 	return ec;
 }
 
-static LinkProfilerServer* _linkprofilerudp_newServer(ShadowLogFunc log, in_addr_t bindIPAddress) {
+static LinkProfilerServer* _linkprofilerudp_newServer(ShadowLogFunc log, ShadowCreateCallbackFunc ccb, in_addr_t bindIPAddress) {
 	g_assert(log);
 
 	/* create the socket and get a socket descriptor */
@@ -122,10 +123,11 @@ static LinkProfilerServer* _linkprofilerudp_newServer(ShadowLogFunc log, in_addr
 	es->listend = socketd;
 	es->epolld = epolld;
 	es->log = log;
+	es->ccb = ccb;
 	return es;
 }
 
-LinkProfilerUDP* linkprofilerudp_new(ShadowLogFunc log, int argc, char* argv[]) {
+LinkProfilerUDP* linkprofilerudp_new(ShadowLogFunc log, ShadowCreateCallbackFunc ccb, int argc, char* argv[]) {
 	g_assert(log);
 
 	if(argc < 1) {
@@ -134,6 +136,7 @@ LinkProfilerUDP* linkprofilerudp_new(ShadowLogFunc log, int argc, char* argv[]) 
 
 	LinkProfilerUDP* eudp = g_new0(LinkProfilerUDP, 1);
 	eudp->log = log;
+	eudp->ccb = ccb;
 
 	gchar* mode = argv[0];
 	gboolean isError = FALSE;
@@ -151,7 +154,7 @@ LinkProfilerUDP* linkprofilerudp_new(ShadowLogFunc log, int argc, char* argv[]) 
 				isError = TRUE;
 			} else {
 				in_addr_t serverIP = ((struct sockaddr_in*)(serverInfo->ai_addr))->sin_addr.s_addr;
-				eudp->client = _linkprofilerudp_newClient(log, serverIP);
+				eudp->client = _linkprofilerudp_newClient(log, ccb, serverIP);
 			}
 			freeaddrinfo(serverInfo);
 		}
@@ -170,7 +173,7 @@ LinkProfilerUDP* linkprofilerudp_new(ShadowLogFunc log, int argc, char* argv[]) 
 			} else {
 				in_addr_t myIP = ((struct sockaddr_in*)(myInfo->ai_addr))->sin_addr.s_addr;
 				log(G_LOG_LEVEL_INFO, __FUNCTION__, "binding to %s", inet_ntoa((struct in_addr){myIP}));
-				eudp->server = _linkprofilerudp_newServer(log, myIP);
+				eudp->server = _linkprofilerudp_newServer(log, ccb, myIP);
 			}
 			freeaddrinfo(myInfo);
 		} else {
@@ -181,8 +184,8 @@ LinkProfilerUDP* linkprofilerudp_new(ShadowLogFunc log, int argc, char* argv[]) 
 	else if (g_ascii_strncasecmp(mode, "loopback", 8) == 0)
 	{
 		in_addr_t serverIP = htonl(INADDR_LOOPBACK);
-		eudp->server = _linkprofilerudp_newServer(log, serverIP);
-		eudp->client = _linkprofilerudp_newClient(log, serverIP);
+		eudp->server = _linkprofilerudp_newServer(log, ccb, serverIP);
+		eudp->client = _linkprofilerudp_newClient(log, ccb, serverIP);
 	}
 	else {
 		isError = TRUE;
@@ -212,38 +215,32 @@ void linkprofilerudp_free(LinkProfilerUDP* eudp) {
 	g_free(eudp);
 }
 
+static void _linkprofilerudp_wakeupCallback(gpointer data) {
+	LinkProfilerClient *ec = (LinkProfilerClient*)data;
+	ec->log(G_LOG_LEVEL_DEBUG, __FUNCTION__, "Woken up");
+	ec->is_done=0;
+}
+
+static void _linkprofilerudp_sleepCallback(LinkProfilerClient *ec, guint seconds) {
+	ec->log(G_LOG_LEVEL_DEBUG, __FUNCTION__, "Going to sleep");
+	ec->is_done=1;
+        ec->ccb(&_linkprofilerudp_wakeupCallback, ec, seconds*1000);
+}
+
 static void _linkprofilerudp_clientReadable(LinkProfilerClient* ec, gint socketd) {
-	ec->log(G_LOG_LEVEL_DEBUG, __FUNCTION__, "trying to read socket %i", socketd);
+	ec->log(G_LOG_LEVEL_DEBUG, __FUNCTION__, "trying to read client socket %i", socketd);
 
-	if(!ec->is_done) {
-		ssize_t b = 0;
-		while(ec->amount_sent-ec->recv_offset > 0 &&
-				(b = recvfrom(socketd, ec->recvBuffer+ec->recv_offset, ec->amount_sent-ec->recv_offset, 0, NULL, NULL)) > 0) {
-			ec->log(G_LOG_LEVEL_INFO, __FUNCTION__, "client socket %i read %i bytes: '%p'", socketd, b, ec->recvBuffer+ec->recv_offset);
-			ec->recv_offset += b;
-		}
-
-		if(ec->recv_offset >= ec->amount_sent) {
-			ec->is_done = 1;
-			if(memcmp(ec->sendBuffer, ec->recvBuffer, ec->amount_sent)) {
-				ec->log(G_LOG_LEVEL_MESSAGE, __FUNCTION__, "inconsistent echo received!");
-			} else {
-				ec->log(G_LOG_LEVEL_MESSAGE, __FUNCTION__, "consistent echo received!");
-			}
-
-			if(epoll_ctl(ec->epolld, EPOLL_CTL_DEL, socketd, NULL) == -1) {
-				ec->log(G_LOG_LEVEL_WARNING, __FUNCTION__, "Error in epoll_ctl");
-			}
-
-			close(socketd);
-		} else {
-			ec->log(G_LOG_LEVEL_INFO, __FUNCTION__, "linkprofiler progress: %i of %i bytes", ec->recv_offset, ec->amount_sent);
-		}
+	ssize_t b = 0;
+	while(ec->amount_sent-ec->recv_offset > 0 &&
+			(b = recvfrom(socketd, ec->recvBuffer+ec->recv_offset, ec->amount_sent-ec->recv_offset, 0, NULL, NULL)) > 0) {
+		ec->log(G_LOG_LEVEL_INFO, __FUNCTION__, "client socket %i read %i bytes: '%p'", socketd, b, ec->recvBuffer+ec->recv_offset);
+		ec->recv_offset += b;
 	}
+	/* TODO: reset recv_offset once data is no longer needed */
 }
 
 static void _linkprofilerudp_serverReadable(LinkProfilerServer* es, gint socketd) {
-	es->log(G_LOG_LEVEL_DEBUG, __FUNCTION__, "trying to read socket %i", socketd);
+	es->log(G_LOG_LEVEL_DEBUG, __FUNCTION__, "trying to read server socket %i", socketd);
 
 	socklen_t len = sizeof(es->address);
 
@@ -272,72 +269,50 @@ static void _linkprofilerudp_fillCharBuffer(gchar* buffer, gint size) {
 }
 
 static void _linkprofilerudp_clientWritable(LinkProfilerClient* ec, gint socketd) {
-	if(!ec->sent_msg && !ec->is_done) {
-		ec->log(G_LOG_LEVEL_DEBUG, __FUNCTION__, "trying to write to socket %i", socketd);
+	ec->log(G_LOG_LEVEL_DEBUG, __FUNCTION__, "trying to write to client socket %i", socketd);
 
-		struct sockaddr_in server;
-		memset(&server, 0, sizeof(server));
-		server.sin_family = AF_INET;
-		server.sin_addr.s_addr = ec->serverIP;
-		server.sin_port = htons(LINKPROFILER_SERVER_PORT);
+	struct sockaddr_in server;
+	memset(&server, 0, sizeof(server));
+	server.sin_family = AF_INET;
+	server.sin_addr.s_addr = ec->serverIP;
+	server.sin_port = htons(LINKPROFILER_SERVER_PORT);
 
-		socklen_t len = sizeof(server);
+	socklen_t len = sizeof(server);
 
-		_linkprofilerudp_fillCharBuffer(ec->sendBuffer, sizeof(ec->sendBuffer)-1);
+	_linkprofilerudp_fillCharBuffer(ec->sendBuffer, sizeof(ec->sendBuffer)-1);
 
-		ssize_t b = sendto(socketd, ec->sendBuffer, sizeof(ec->sendBuffer), 0, (struct sockaddr*) (&server), len);
-		ec->sent_msg = 1;
-		ec->amount_sent += b;
-		ec->log(G_LOG_LEVEL_INFO, __FUNCTION__, "client socket %i wrote %i bytes: '%p'", socketd, b, ec->sendBuffer);
+	ssize_t b = sendto(socketd, ec->sendBuffer, sizeof(ec->sendBuffer), 0, (struct sockaddr*) (&server), len);
+	ec->amount_sent += b;
+	ec->log(G_LOG_LEVEL_INFO, __FUNCTION__, "client socket %i wrote %i bytes: '%p'", socketd, b, ec->sendBuffer);
 
-		if(ec->amount_sent >= sizeof(ec->sendBuffer)) {
-			/* we sent everything, so stop trying to write */
-			struct epoll_event ev;
-			ev.events = EPOLLIN;
-			ev.data.fd = socketd;
-			if(epoll_ctl(ec->epolld, EPOLL_CTL_MOD, socketd, &ev) == -1) {
-				ec->log(G_LOG_LEVEL_WARNING, __FUNCTION__, "Error in epoll_ctl");
-			}
+	if(ec->amount_sent >= sizeof(ec->sendBuffer)) {
+		ec->sent_msg += 1;
+		ec->amount_sent = 0;
+		ec->log(G_LOG_LEVEL_INFO, __FUNCTION__, "client socket %i wrote message %d", socketd, ec->sent_msg);
+	}
+
+	_linkprofilerudp_sleepCallback(ec, 1);
+
+	if(ec->sent_msg > 10) {
+		/* we sent everything, so stop trying to write */
+		ec->is_done = 1;
+		struct epoll_event ev;
+		ev.events = EPOLLIN;
+		ev.data.fd = socketd;
+		if(epoll_ctl(ec->epolld, EPOLL_CTL_MOD, socketd, &ev) == -1) {
+			ec->log(G_LOG_LEVEL_WARNING, __FUNCTION__, "Error in epoll_ctl");
 		}
 	}
 }
 
 static void _linkprofilerudp_serverWritable(LinkProfilerServer* es, gint socketd) {
-	es->log(G_LOG_LEVEL_DEBUG, __FUNCTION__, "trying to read socket %i", socketd);
-
-	socklen_t len = sizeof(es->address);
-
-	/* echo it back to the client on the same sd,
-	 * also taking care of data that is still hanging around from previous reads. */
-	gint write_size = es->read_offset - es->write_offset;
-	if(write_size > 0) {
-		ssize_t bwrote = sendto(socketd, es->linkprofilerBuffer + es->write_offset, write_size, 0, (struct sockaddr*)&es->address, len);
-		if(bwrote == 0) {
-			if(epoll_ctl(es->epolld, EPOLL_CTL_DEL, socketd, NULL) == -1) {
-				es->log(G_LOG_LEVEL_WARNING, __FUNCTION__, "Error in epoll_ctl");
-			}
-		} else if(bwrote > 0) {
-			es->log(G_LOG_LEVEL_INFO, __FUNCTION__, "server socket %i wrote %i bytes", socketd, (gint)bwrote);
-			es->write_offset += bwrote;
-			write_size -= bwrote;
-		}
-	}
-
-	if(write_size == 0) {
-		/* stop trying to write */
-		struct epoll_event ev;
-		ev.events = EPOLLIN;
-		ev.data.fd = socketd;
-		if(epoll_ctl(es->epolld, EPOLL_CTL_MOD, socketd, &ev) == -1) {
-			es->log(G_LOG_LEVEL_WARNING, __FUNCTION__, "Error in epoll_ctl");
-		}
-	}
+	es->log(G_LOG_LEVEL_WARNING, __FUNCTION__, "trying to write to server socket %i", socketd);
 }
 
 void linkprofilerudp_ready(LinkProfilerUDP* eudp) {
 	g_assert(eudp);
 
-	if(eudp->client) {
+	if(eudp->client && !eudp->client->is_done) {
 		struct epoll_event events[MAX_EVENTS];
 
 		int nfds = epoll_wait(eudp->client->epolld, events, MAX_EVENTS, 0);
