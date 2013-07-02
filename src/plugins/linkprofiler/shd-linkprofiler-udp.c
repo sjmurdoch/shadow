@@ -272,7 +272,7 @@ static void _linkprofilerudp_fillCharBuffer(gchar* buffer, gint size) {
 }
 
 static void _linkprofilerudp_clientWritable(LinkProfilerClient* ec, gint socketd) {
-	if(!ec->sent_msg) {
+	if(!ec->sent_msg && !ec->is_done) {
 		ec->log(G_LOG_LEVEL_DEBUG, __FUNCTION__, "trying to write to socket %i", socketd);
 
 		struct sockaddr_in server;
@@ -349,7 +349,7 @@ void linkprofilerudp_ready(LinkProfilerUDP* eudp) {
 			if(events[i].events & EPOLLIN) {
 				_linkprofilerudp_clientReadable(eudp->client, events[i].data.fd);
 			}
-			if(!eudp->client->is_done && (events[i].events & EPOLLOUT)) {
+			if(events[i].events & EPOLLOUT) {
 				_linkprofilerudp_clientWritable(eudp->client, events[i].data.fd);
 			}
 		}
